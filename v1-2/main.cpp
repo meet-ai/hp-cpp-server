@@ -10,7 +10,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
-
+void process(int);
 int main(int argc, char *argv[]) {
   int listen_sock = socket(AF_INET, SOCK_STREAM, 0);
   if (listen_sock < 0) {
@@ -35,13 +35,31 @@ int main(int argc, char *argv[]) {
   // backlog length == 1000
   listen(listen_sock, 1000);
   unsigned int client_addrLen = sizeof(struct sockaddr_in);
-  int accept_fd =
-      accept(listen_sock, (struct sockaddr *)&client_addr, &client_addrLen);
-  if (-1 == accept_fd) {
-    spdlog::error("accept failed");
-    return -1;
-  }
 
+  for (;;) {
+
+    int accept_fd =
+        accept(listen_sock, (struct sockaddr *)&client_addr, &client_addrLen);
+
+    pid_t fork_pid = fork();
+    if (fork_pid == -1) {
+      perror("fork failed");
+      return 1;
+    } else if (fork() == 0) {
+      // child
+      close(listen_sock);
+      process(accept_fd);
+      close(accept_fd);
+    } else {
+      // parent
+      //
+      close(accept_fd);
+    }
+  }
+  return 0;
+}
+
+void process(int accept_fd) {
   char body[1024] = {0};
   while (true) {
     memset(body, 0, 1024);
@@ -50,7 +68,6 @@ int main(int argc, char *argv[]) {
       spdlog::info("read data: {}", body);
     } else if (readed == 0) {
       spdlog::info("read eof");
-      close(accept_fd);
       break;
     } else {
       perror("read failed");
@@ -58,6 +75,4 @@ int main(int argc, char *argv[]) {
     }
     write(accept_fd, body, 1024);
   }
-  // close(listen_sock);  unp 未关闭 因为系统会自动关闭系统调用相关的资源
-  return 0;
 }
