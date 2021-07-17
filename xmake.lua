@@ -60,6 +60,13 @@ target("v1-3")
     add_packages("spdlog")
     add_packages("vcpkg::fmt")
 target_end()
+target("v1-4")
+    set_kind("binary")
+    add_files("v1-4/*.cpp")
+    add_packages("gtest")
+    add_packages("spdlog")
+    add_packages("vcpkg::fmt")
+target_end()
 --
 -- If you want to known more usage about xmake, please see https://xmake.io
 --
